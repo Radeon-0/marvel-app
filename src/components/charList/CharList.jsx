@@ -42,6 +42,7 @@ class CharList extends Component {
                     key={item.id}>
                     <img src={item.thumbnail} alt={item.name}  />
                     <div className="char__name">{item.name}</div>
+                    
                 </li>
             )
         });
