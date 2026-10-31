@@ -1,5 +1,5 @@
 
-@import '../../style/variables.scss';
+@use '../../style/variables.scss' as *;
 .app {
     &__header {
         display: flex;
