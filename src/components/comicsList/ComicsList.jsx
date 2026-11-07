@@ -17,6 +17,8 @@ const ComicsList = () => {
     const [comicsEnded, setComicsEnded] = useState(false);
     const requestController = useRef(null);
 
+
+
     // Добавляет загруженную страницу и готовит смещение для следующей.
     const onComicsListLoaded = useCallback((newComicsList) => {
         setComicsList(currentList => [...currentList, ...newComicsList]);
@@ -78,6 +80,9 @@ const ComicsList = () => {
             </Link>
         </li>
     ));
+
+
+
 
     return (
         <div className="comics__list">

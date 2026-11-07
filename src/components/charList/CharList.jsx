@@ -21,8 +21,13 @@ const CharList = ({onCharSelected}) => {
     const itemRefs = useRef([]);
     const requestController = useRef(null);
 
+    const loggerStarted = useRef(false);
+
     // Добавляет новую страницу к списку и обновляет смещение для следующей загрузки.
-    const onCharListLoaded = useCallback((newCharList) => {
+    const onCharListLoaded = useCallback( (newCharList) => {
+
+
+
         setCharList(currentList => [...currentList, ...newCharList]);
         setError(false);
         setInitialLoading(false);
@@ -102,6 +107,15 @@ const CharList = ({onCharSelected}) => {
             </li>
         );
     });
+
+    useEffect(() => {
+        if (!initialLoading || loggerStarted.current) return;
+        loggerStarted.current = true;
+
+        import('./someFunc.jsx')
+            .then(logger => logger.default())
+            .catch(error => console.error('Не удалось загрузить модуль:', error));
+    }, [initialLoading]);
 
     return (
         <div className="char__list">
