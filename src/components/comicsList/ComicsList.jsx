@@ -48,8 +48,7 @@ const ComicsList = () => {
             .catch(onError);
 
         return () => controller.abort();
-        // getAllComics is recreated by the service hook; the initial request runs once.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [onComicsListLoaded, onError]);
 
     // Загружает следующую страницу и позволяет отменить предыдущий запрос.
