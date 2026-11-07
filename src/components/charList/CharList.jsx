@@ -1,119 +1,123 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
-import MarvelService from '../../services/MarvelService';
+import useMarvelService from '../../services/MarvelService';
 import './charList.scss';
 
-class CharList extends Component {
+const PAGE_SIZE = 9;
 
-    state = {
-        charList: [],
-        loading: true,
-        error: false,
-        newItemLoading: false,
-        offset: 0,
-        charEnded: false
-    }
+const CharList = ({onCharSelected}) => {
+    const {getAllCharacters} = useMarvelService();
 
-    marvelService = new MarvelService();
+    // Состояние списка, пагинации, выбранной карточки и сетевых запросов.
+    const [charList, setCharList] = useState([]);
+    const [error, setError] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [newItemLoading, setNewItemLoading] = useState(false);
+    const [offset, setOffset] = useState(PAGE_SIZE);
+    const [charEnded, setCharEnded] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const itemRefs = useRef([]);
+    const requestController = useRef(null);
 
-    componentDidMount() {
-        this.onRequest();
-    }
+    // Добавляет новую страницу к списку и обновляет смещение для следующей загрузки.
+    const onCharListLoaded = useCallback((newCharList) => {
+        setCharList(currentList => [...currentList, ...newCharList]);
+        setError(false);
+        setInitialLoading(false);
+        setNewItemLoading(false);
+        setOffset(currentOffset => currentOffset + PAGE_SIZE);
+        setCharEnded(newCharList.length < PAGE_SIZE);
+    }, []);
 
-    controller = new AbortController();
-
-    componentWillUnmount() {
-        this.controller.abort();
-    }
-
-    onRequest = (offset) => {
-        this.controller = new AbortController();
-
-        this.onCharListLoading();
-
-        this.marvelService.getAllCharacters(offset, this.controller.signal)
-            .then(this.onCharListLoaded)
-            .catch(err => {
-                if (err.name !== 'AbortError') {
-                    this.onError();
-                }
-            });
-    }
-
-    onCharListLoading = () => {
-        this.setState({
-            newItemLoading: true
-        })
-    }
-
-    onCharListLoaded = (newCharList) => {
-        let ended = false;
-        if (newCharList.length < 9) {
-            ended = true;
+    // Отменённый запрос не считается ошибкой приложения.
+    const onError = useCallback((requestError) => {
+        if (requestError.name !== 'AbortError') {
+            setError(true);
+            setInitialLoading(false);
+            setNewItemLoading(false);
         }
-        this.setState(({offset, charList}) => ({
-            charList: [...charList, ...newCharList],
-            loading: false,
-            newItemLoading: false,
-            offset: offset + 9,
-            charEnded: ended
-        }))
-    }
+    }, []);
 
-    onError = () => {
-        this.setState({
-            error: true,
-            loading: false
-        })
-    }
+    // При первом отображении компонента загружается первая страница персонажей.
+    useEffect(() => {
+        const controller = new AbortController();
+        requestController.current = controller;
 
-    renderItems(arr) {
-        const items =  arr.map((item) => {
+        getAllCharacters(PAGE_SIZE, controller.signal)
+            .then((newCharList) => {
+                if (!controller.signal.aborted) onCharListLoaded(newCharList);
+            })
+            .catch(onError);
 
-            return (
-                <li
-                    className="char__item"
-                    key={item.id}
-                    onClick={() => this.props.onCharSelected(item.id)}>
-                    <img src={item.thumbnail} alt={item.name} />
-                    <div className="char__name">{item.name}</div>
-                </li>
-            )
-        });
-        // А эта конструкция вынесена для центровки спиннера/ошибки
+        return () => controller.abort();
+    }, [onCharListLoaded, onError]);
+
+    // Загружает следующую страницу и отменяет предыдущий запрос, если он ещё выполняется.
+    const onRequest = useCallback((requestOffset) => {
+        requestController.current?.abort();
+        const controller = new AbortController();
+        requestController.current = controller;
+
+        setError(false);
+        setNewItemLoading(true);
+        getAllCharacters(requestOffset, controller.signal)
+            .then((newCharList) => {
+                if (!controller.signal.aborted) onCharListLoaded(newCharList);
+            })
+            .catch(onError);
+    }, [getAllCharacters, onCharListLoaded, onError]);
+
+    // Отменяет активный запрос при размонтировании компонента.
+    useEffect(() => () => requestController.current?.abort(), []);
+
+    // После выбора карточки переводит на неё клавиатурный фокус.
+    useEffect(() => {
+        if (selectedItem !== null) itemRefs.current[selectedItem]?.focus();
+    }, [selectedItem]);
+
+    // Создаёт карточки и связывает выбор мышью или клавиатурой с родительским компонентом.
+    const items = charList.map((item, index) => {
+        const selectItem = () => {
+            onCharSelected(item.id);
+            setSelectedItem(index);
+        };
+
         return (
-            <ul className="char__grid">
-                {items}
-            </ul>
-        )
-    }
+            <li
+                className={index === selectedItem ? 'char__item char__item_selected' : 'char__item'}
+                tabIndex={0}
+                ref={element => { itemRefs.current[index] = element; }}
+                key={item.id}
+                onClick={selectItem}
+                onKeyDown={event => {
+                    if (event.key === ' ' || event.key === 'Enter') {
+                        event.preventDefault();
+                        selectItem();
+                    }
+                }}>
+                <img src={item.thumbnail} alt={item.name} />
+                <div className="char__name">{item.name}</div>
+            </li>
+        );
+    });
 
-    render() {
-
-        const {charList, loading, error, offset, newItemLoading, charEnded} = this.state;
-
-        const items = this.renderItems(charList);
-
-        const errorMessage = error ? <ErrorMessage/> : null;
-        const spinner = loading ? <Spinner/> : null;
-        const content = !(loading || error) ? items : null;
-
-        return (
-            <div className="char__list">
-                {errorMessage}
-                {spinner}
-                {content}
-                <button
-                    className="button button__main button__long"
-                    disabled={newItemLoading}
-                    style={{'display': charEnded ? 'none' : 'block'}}
-                    onClick={() => this.onRequest(offset)}>
-                    <div className="inner">load more</div>
-                </button>
-            </div>
-        )
-    }
-}
+    return (
+        <div className="char__list">
+            {error && <ErrorMessage/>}
+            {initialLoading && <Spinner/>}
+            <ul className="char__grid">{items}</ul>
+            {newItemLoading && <Spinner/>}
+            <button
+                className="button button__main button__long"
+                disabled={newItemLoading}
+                style={{display: charEnded ? 'none' : 'block'}}
+                onClick={() => onRequest(offset)}>
+                <div className="inner">load more</div>
+            </button>
+        </div>
+    );
+};
 
 export default CharList;
