@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-
+import {Link} from 'react-router-dom';
 import useMarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorMessage from '../errorMessage/ErrorMessage';
@@ -71,11 +71,11 @@ const ComicsList = () => {
 
     const items = comicsList.map(comic => (
         <li className="comics__item" key={comic.id}>
-            <a href="#">
+            <Link to={`/comics/${comic.id}`}>
                 <img src={comic.thumbnail} alt={comic.title} className="comics__item-img"/>
                 <div className="comics__item-name">{comic.title}</div>
                 <div className="comics__item-price">{comic.price}</div>
-            </a>
+            </Link>
         </li>
     ));
 

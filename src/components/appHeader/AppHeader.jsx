@@ -15,7 +15,7 @@ const AppHeader = () => {
                 <ul>
                     <li><NavLink end to="/" style={activeLinkStyle}>Characters</NavLink></li>
                     /
-                    <li><NavLink end to="/comics" style={activeLinkStyle}>Comics</NavLink></li>
+                    <li><NavLink  to="/comics" style={activeLinkStyle}>Comics</NavLink></li>
                 </ul>
             </nav>
         </header>
