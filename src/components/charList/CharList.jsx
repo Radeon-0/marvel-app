@@ -108,14 +108,14 @@ const CharList = ({onCharSelected}) => {
         );
     });
 
-    useEffect(() => {
-        if (!initialLoading || loggerStarted.current) return;
-        loggerStarted.current = true;
-
-        import('./someFunc.jsx')
-            .then(logger => logger.default())
-            .catch(error => console.error('Не удалось загрузить модуль:', error));
-    }, [initialLoading]);
+    // useEffect(() => {
+    //     if (!initialLoading || loggerStarted.current) return;
+    //     loggerStarted.current = true;
+    //
+    //     import('./someFunc.jsx')
+    //         .then(logger => logger.default())
+    //         .catch(error => console.error('Не удалось загрузить модуль:', error));
+    // }, [initialLoading]);
 
     return (
         <div className="char__list">
